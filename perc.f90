@@ -12,11 +12,14 @@ subroutine sigmoid(x, is_derivative)
     implicit none
     real, intent(inout) :: x 
     logical, intent(in) :: is_derivative
+    real :: sig 
+
+    sig = 1 / (1 + exp(-x))
 
     if (is_derivative) then
-        x = (1 / (1 + exp(-x))) * (1 - (1 / (1 + exp(-x))))
+        x = sig * (1 - sig)
     else
-        x = (1 / (1 + exp(-x)))
+        x = sig
     end if
 end subroutine sigmoid 
 ! ********************************************************** 
@@ -25,11 +28,14 @@ subroutine tanhaf(x, is_derivative)
     implicit none 
     real, intent(inout) :: xx 
     logical, intent(in) :: is_derivative 
+    real :: t
+
+    t = tanh(x)
 
     if (is_derivative) then
-        x = 1 - (tanh(x))**2
+        x = 1 - t**2
     else 
-        x = tanh(x)
+        x = t
     end if
-end subroutine tanha
+end subroutine tanhaf
 ! **********************************************************
