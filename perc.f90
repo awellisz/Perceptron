@@ -1,63 +1,46 @@
 program perceptron
     implicit none
-    real :: input(4, 3)  ! Training data --- 4 by 3 matrix
-    real :: output(4, 1) ! Outputs for training data 
-    real :: w(3, 1)      ! Weight vector
-    real :: alpha        ! Learning rate 
-    real :: start, end   ! Start/end times for program duration
-    integer :: i         ! Iterator variable
+    real :: oi(4, 3)      ! Training data input --- 4 by 3 matrix
+    real :: tj(4, 1)      ! Target output vector for training data 
+    real :: w(3, 1)       ! Weight vector
+    real :: oj(4, 1)      ! Second layer of NN (output)
+    real :: delta(4, 1)   ! Delta to update weights 
+    real :: alpha         ! Learning rate 
+    real :: start, end    ! Start/end times for program duration
+    integer :: i          ! Iterator variable
 
     ! Initialize training input values
-    data input / 0, 0, 1, &
-                 1, 1, 1, & 
-                 1, 0, 1, &
-                 0, 1, 1 / 
+    data oi / 0, 0, 1, &
+              1, 1, 1, & 
+              1, 0, 1, &
+              0, 1, 1 / 
 
     ! Initialize training output values
-    data output / 0, 1, 1, 0 / 
+    data tj / 0, 1, 1, 0 / 
 
-    ! Initialize weights with random numbers in [0, 1)
+    ! Initialize weights with random numbers in [-1, 1]
     call random_number(w)
+    w = (2 * w) - 1
+
+    ! Initialize training rate
+    alpha = 1
 
     call cpu_time(start)
 
-    ! ... 
+    do i = 1, 100000
+        ! Forward propagation with sigmoid transfer function
+        oj = 1. / (1. + exp(-matmul(oi, w)))
+        ! oj = tanh(matmul(oi, w))
+
+        ! Find delta (amount to update weights)
+        delta = (oj - tj) * (oj * (1. - oj))
+        ! delta = (oj - toutput) * (1 - tanh(oj)**2)
+
+        w = w - alpha * matmul(transpose(oi), delta)
+    end do
 
     call cpu_time(end)
 
+    print *, oj
+
 end program perceptron
-
-! **********************************************************
-! sigmoid activation function
-! Returns the derivative of sigmoid if is_derivative is .true.
-subroutine sigmoid(x, is_derivative)
-    implicit none
-    real, intent(inout) :: x 
-    logical, intent(in) :: is_derivative
-    real :: sig 
-
-    sig = 1 / (1 + exp(-x))
-
-    if (is_derivative) then
-        x = sig * (1 - sig)
-    else
-        x = sig
-    end if
-end subroutine sigmoid 
-! ********************************************************** 
-! tanh activation function
-subroutine tanhaf(x, is_derivative)
-    implicit none 
-    real, intent(inout) :: x
-    logical, intent(in) :: is_derivative 
-    real :: t
-
-    t = tanh(x)
-
-    if (is_derivative) then
-        x = 1 - t**2
-    else 
-        x = t
-    end if
-end subroutine tanhaf
-! **********************************************************
