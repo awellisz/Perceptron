@@ -9,9 +9,9 @@ def init_params(n_input_neurons, n_hidden_neurons, n_output_neurons):
     n_input/hidden/output_neurons: size of each layer of the neural network.
     """
     np.random.seed(12345)
-    W1 = 2*np.random.rand(n_hidden_neurons, n_input_neurons) - 0.5 # Originally 10, 784
-    b1 = 2*np.random.rand(n_hidden_neurons, 1) - 0.5 # 10, 1
-    W2 = 2*np.random.rand(n_output_neurons, n_hidden_neurons) - 0.5 # 10, 10
+    W1 = 2*np.random.rand(n_hidden_neurons, n_input_neurons) - 0.5
+    b1 = 2*np.random.rand(n_hidden_neurons, 1) - 0.5
+    W2 = 2*np.random.rand(n_output_neurons, n_hidden_neurons) - 0.5 
     b2 = 2*np.random.rand(n_output_neurons, 1) - 0.5
     return W1, b1, W2, b2
 
@@ -28,7 +28,7 @@ def softmax(Z):
              end up in [0,1] and sum to 1).
     Z: Input array
     """
-    return np.exp(Z) / sum(np.exp(Z))
+    return np.exp(Z) / np.sum(np.exp(Z))
     
 def feedforward(W1, b1, W2, b2, X):
     """
@@ -50,46 +50,82 @@ def relu_deriv(Z):
     """
     return np.where(Z > 0, 1, 0)
 
-def encode_one_hot(Y):
+def encode_one_hot(y):
     """
     encode_one_hot: encodes the label vector as a "one-hot" matrix,
                     where each element K of the vector becomes an array where 
                     the K-th element is 1 and the rest are zero. This makes the
                     training output values the right matrix shape to work with 
                     the output layer activation.
-    Y: the input label vector. In this case, all labels are in [0,9], so each
+    y: the input label vector. In this case, all labels are in [0,9], so each
         row of the one-hot array has 10 elements.
     """
-    one_hot_Y = np.zeros((Y.size, Y.max() + 1))
-    one_hot_Y[np.arange(Y.size), Y] = 1
-    one_hot_Y = one_hot_Y.T
-    return one_hot_Y
+    return (np.eye(np.max(y) + 1)[y]).T
 
-def backpropagation(Z1, A1, Z2, A2, W1, b1, W2, b2, X, y, m, alpha):
-    """
-    backpropagation: Performs a backward pass to adjust NN weights.
-    Z1, A1: Hidden layer of NN
-    Z2, A2: Output layer of NN
-    W1, W2: Weights (input -> hidden, hidden -> output, respectively)
-    b1, b2: Biases
-    X: feature matrix
-    y: label vector (i.e. actual output of training data)
-    m: number of training samples (X.shape[1])
-    """
-    # Encode output layer as one-hot
-    one_hot_y = encode_one_hot(y)
-
-    # Calculate deltas for weights
-    delta2 = A2 - one_hot_y
+def backpropagate(Z1, A1, Z2, A2, W1, b1, W2, b2, X, y, alpha):
+    m = X.shape[1]
+    
+    delta2 = A2 - encode_one_hot(y)
+    dW2 = (1/m) * np.dot(delta2, A1.T)
+    db2 = (1/m) * np.sum(delta2)
+    
     delta1 = np.dot(W2.T, delta2) * relu_deriv(Z1)
-
-    # Update weights and biases
-    W2 = W2 - alpha * (1/m)*np.dot(delta2, A1.T)
-    b2 = b2 - alpha * (1/m)*np.sum(delta2)
-    W1 = W1 - alpha * (1/m)*np.dot(delta1, X.T)
-    b1 = b1 - alpha * (1/m)*np.sum(delta1) # axis = 0? check this
-
+    dW1 = (1/m) * np.dot(delta1, X.T)
+    db1 = (1/m) * np.sum(delta1)
+    
+    W1 = W1 - alpha * dW1
+    b1 = b1 - alpha * db1    
+    W2 = W2 - alpha * dW2  
+    b2 = b2 - alpha * db2 
+    
     return W1, b1, W2, b2
+
+# def backpropagation(Z1, A1, Z2, A2, W1, W2, X, Y):
+#     one_hot_Y = encode_one_hot(Y)
+
+#     m = X.shape[1]
+
+#     dZ2 = A2 - one_hot_Y
+#     dW2 = 1 / m * dZ2.dot(A1.T)
+#     db2 = 1 / m * np.sum(dZ2)
+
+#     dZ1 = W2.T.dot(dZ2) * relu_deriv(Z1)
+#     dW1 = 1 / m * dZ1.dot(X.T)
+#     db1 = 1 / m * np.sum(dZ1)
+#     return dW1, db1, dW2, db2
+
+# def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha):
+#     W1 = W1 - alpha * dW1
+#     b1 = b1 - alpha * db1    
+#     W2 = W2 - alpha * dW2  
+#     b2 = b2 - alpha * db2    
+#     return W1, b1, W2, b2
+
+# def backpropagation(Z1, A1, Z2, A2, W1, b1, W2, b2, X, y, m, alpha):
+#     """
+#     backpropagation: Performs a backward pass to adjust NN weights.
+#     Z1, A1: Hidden layer of NN
+#     Z2, A2: Output layer of NN
+#     W1, W2: Weights (input -> hidden, hidden -> output, respectively)
+#     b1, b2: Biases
+#     X: feature matrix
+#     y: label vector (i.e. actual output of training data)
+#     m: number of training samples (X.shape[1])
+#     """
+#     # Encode output layer as one-hot
+#     one_hot_y = encode_one_hot(y)
+
+#     # Calculate deltas for weights
+#     delta2 = A2 - one_hot_y
+#     delta1 = np.dot(W2.T, delta2) * relu_deriv(Z1)
+
+#     # Update weights and biases
+#     W2 = W2 - alpha * (1/m)*np.dot(delta2, A1.T)
+#     b2 = b2 - alpha * (1/m)*np.sum(delta2)
+#     W1 = W1 - alpha * (1/m)*np.dot(delta1, X.T)
+#     b1 = b1 - alpha * (1/m)*np.sum(delta1) # axis = 0? check this
+
+#     return W1, b1, W2, b2
 
 def get_predictions(A):
     """
@@ -97,15 +133,14 @@ def get_predictions(A):
     """
     return np.argmax(A, 0)
 
-def get_accuracy(predictions, Y):
+def get_accuracy(predictions, y):
     """
     get_accuracy: Calculates the accuracy of the neural network by comparing
                   actual training labels to predicted labels.
     predictions: predicted labels
-    Y: training data labels
+    y: training data labels
     """
-    # print(predictions, Y)
-    return np.sum(predictions == Y) / Y.size
+    return np.sum(predictions == y) / y.size
 
 def print_progress_bar(curr, total, accuracy, bar_size = 30):
     """
@@ -121,12 +156,44 @@ def print_progress_bar(curr, total, accuracy, bar_size = 30):
     sys.stdout.write(f"Accuracy: {accuracy_string.ljust(10)} | [{bar:{bar_size}s}] {int(100 * pct)}% ({itercounter})")
     sys.stdout.flush()
 
-def test_network_on_img(index, W1, b1, W2, b2):
-    img = X_train[:, index, None]
+# def gradient_descent(X, Y, alpha, iterations):
+#     W1, b1, W2, b2 = init_params(784, 80, 10)
+#     for i in range(iterations):
+#         Z1, A1, Z2, A2 = feedforward(W1, b1, W2, b2, X)
+# #         dW1, db1, dW2, db2 = backpropagation(Z1, A1, Z2, A2, W1, W2, X, Y)
+# #         W1, b1, W2, b2 = update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha)
+        
+#         W1, b1, W2, b2 = backpropagate(Z1, A1, Z2, A2, W1, b1, W2, b2, X, Y, alpha)
+            
+#         if i % 2 == 0:
+#             print("Iteration: ", i)
+#             predictions = get_predictions(A2)
+#             print(get_accuracy(predictions, Y))
+#     return W1, b1, W2, b2
+
+def train_network(X, y, alpha, num_epochs):
+
+    print(f"\nTraining neural network with learning rate {alpha} over {num_epochs} training epochs...\n")
+
+    W1, b1, W2, b2 = init_params(784, 80, 10)
+    for i in range(num_epochs):
+        Z1, A1, Z2, A2 = feedforward(W1, b1, W2, b2, X)
+        W1, b1, W2, b2 = backpropagate(Z1, A1, Z2, A2, W1, b1, W2, b2, X, y, alpha)
+        if i % 2 == 0:
+            print("Iteration: ", i)
+            predictions = get_predictions(A2)
+            print(get_accuracy(predictions, y))
+    
+    print("Training complete.")
+
+    return W1, b1, W2, b2 
+
+def test_network_on_img(index, W1, b1, W2, b2, X, y):
+    img = X[:, index, None]
 
     _, _, _, A2 = feedforward(W1, b1, W2, b2, img)
     prediction = get_predictions(A2)
-    label = Y_train[index]
+    label = y[index]
 
     img = img.reshape((28,28)) * 255 
     plt.gray() 
@@ -154,29 +221,34 @@ if __name__ == "__main__":
     X_test = testing_data[1:]
     X_test = X_test / 255.
 
-    # Learning rate 
-    alpha = 0.5
-    # Learning epochs
-    iterations = 100
+    W1, b1, W2, b2 = train_network(X_train, y_train, 0.5, 30)
 
-    # 784 inputs, 80 hidden neurons, 10 outputs
-    W1, b1, W2, b2 = init_params(784, 80, 10)
-    _, m = X_train.shape
-    print(f"\nTraining neural network with learning rate {alpha} over {iterations} training epochs...\n")
-    for i in range(iterations):
+    # # Learning rate 
+    # alpha = 0.5
+    # # Learning epochs
+    # iterations = 100
+
+    # # 784 inputs, 80 hidden neurons, 10 outputs
+    # W1, b1, W2, b2 = init_params(784, 80, 10)
+
+    
+    # for i in range(iterations):
         
-        Z1, A1, Z2, A2 = feedforward(W1, b1, W2, b2, X_train)
-        W1, b1, W2, b2 = backpropagation(Z1, A1, Z2, A2, W1, b1, W2, b2, X_train, y_train, m, alpha)
-        predictions = get_predictions(A2)
-        print_progress_bar(i+1, iterations, get_accuracy(predictions, y_train))
+    #     # Z1, A1, Z2, A2 = feedforward(W1, b1, W2, b2, X_train)
+    #     # W1, b1, W2, b2 = backpropagation(Z1, A1, Z2, A2, W1, b1, W2, b2, X_train, y_train, m, alpha)
+    #     Z1, A1, Z2, A2 = feedforward(W1, b1, W2, b2, X_train)
+    #     dW1, db1, dW2, db2 = backpropagation(Z1, A1, Z2, A2, W1, W2, X_train, y_train)
+    #     W1, b1, W2, b2 = update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha)
+    #     predictions = get_predictions(A2)
+    #     print_progress_bar(i+1, iterations, get_accuracy(predictions, y_train))
 
-    print(f"\nTraining complete.\n")
+    # print(f"\nTraining complete.\n")
 
     while True:
         index = input(f"Enter an index from 0 to {X_test.shape[0]} to display the corresponding image and prediction. (Enter -1 to quit).")
         index = int(index)
         if index == -1:
             break
-        test_network_on_img(index, W1, b1, W2, b2)
+        test_network_on_img(index, W1, b1, W2, b2, X_test, y_test)
 
 
